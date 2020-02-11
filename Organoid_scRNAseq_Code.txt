@@ -1,0 +1,63 @@
+data1<-read.csv(file="GSM2878890_hCS_FF_1_MolsPerCell.csv",header=TRUE,row.names=1)
+Genes<-c("MAPT","TBR1", "EOMES", "TBR2", "SYP", "SYN", "NES", "GFAP")
+data2<-data1[,colnames(data1)%in%Genes]
+write.csv(data2,file="Pasca_RNASeq_Sample1.csv")
+
+data3<-read.csv(file="GSM2878891_hCS_FF_2_MolsPerCell.csv",header=TRUE,row.names=1)
+Genes<-c("MAPT","TBR1", "EOMES", "TBR2", "SYP", "SYN", "NES", "GFAP")
+data4<-data3[,colnames(data3)%in%Genes]
+write.csv(data4,file="Pasca_RNASeq_Sample2.csv")
+
+data5<-read.csv(file="GSM2878892_hCS_FF_3_MolsPerCell.csv",header=TRUE,row.names=1)
+Genes<-c("MAPT","TBR1", "EOMES", "TBR2", "SYP", "SYN", "NES", "GFAP")
+data6<-data5[,colnames(data5)%in%Genes]
+write.csv(data6,file="Pasca_RNASeq_Sample3.csv")
+
+require(gridExtra)
+require(ggplot2)
+
+sample1<-read.csv(file="Pasca_RNASeq_Sample1.csv", header=TRUE)
+sample2<-read.csv(file="Pasca_RNASeq_Sample2.csv", header=TRUE)
+sample3<-read.csv(file="Pasca_RNASeq_Sample3.csv", header=TRUE)
+
+organoids<-rbind(sample1, sample2, sample3)
+
+RG<-organoids[organoids$GFAP>0&organoids$SYP==0&organoids$NES>0&organoids$TBR1==0&organoids$EOMES==0,] #isolate RG markers
+TBR2<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES>0&organoids$SYP==0,] #isolate TBR2 markers
+TBR1<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1>0&organoids$EOMES==0&organoids$SYP==0,]
+MN<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES==0&organoids$SYP>0,]
+ASTRO<-organoids[organoids$GFAP>0&organoids$SYP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES==0,]
+
+RG$Type<-"RG" #label these values RG
+TBR2$Type<-"TBR2"
+TBR1$Type<-"TBR1"
+MN$Type<-"MN"
+ASTRO$Type<-"ASTRO"
+
+organoids2<-rbind(RG, TBR2, TBR1, MN, ASTRO) #bind all these variables into a dataset
+organoids2$Type<-factor(organoids2$Type, levels=c("RG", "TBR2","TBR1", "MN", "ASTRO"))
+
+datastats<-glm(MAPT~Type, data=organoids2) #run a glm
+summary(datastats)
+
+require(stats)
+
+meanstats<-aggregate(organoids2$MAPT~organoids2$Type,FUN=mean) #calculate the mean of each of the variables in Type
+sdstats<-aggregate(organoids2$MAPT~organoids2$Type,FUN=sd)
+
+mergestats<-merge(meanstats, sdstats, by="organoids2$Type")
+colnames(mergestats)<-c("Type","Mean","SD")
+
+mergestats$n<-c(dim(RG)[1],dim(TBR2)[1],dim(TBR1)[1],dim(MN)[1],dim(ASTRO)[1])
+mergestats$STE<-mergestats$SD/sqrt(mergestats$n)
+
+mergestats
+
+ggplot(organoids2, aes(x=Type, y=MAPT))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(plot.title=element_text(hjust=-0.05, size=20))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_discrete(labels=c("Radial Glia","TBR2","TBR1","Mature Neurons","Astrocytes"))+
+  scale_y_continuous(limits=c(0,5))+
+  annotate("text", x=c(1:5), y=0.2, label= (paste("n=",mergestats$n, sep="")), size=5)
