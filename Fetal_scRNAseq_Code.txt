@@ -1,0 +1,75 @@
+require(gridExtra)
+require(ggplot2)
+
+a<-read.csv(file="scRNA1.csv",header=T)
+
+RG<-a[a$GFAP>0&a$SYP==0&a$NES>0&a$TBR1==0&a$EOMES==0,] 
+TBR2<-a[a$GFAP==0&a$NES==0&a$TBR1==0&a$SYP==0&a$EOMES>0,] 
+TBR1<-a[a$GFAP==0&a$NES==0&a$TBR1>0&a$SYP==0&a$EOMES==0,]
+MN<-a[a$GFAP==0&a$NES==0&a$TBR1==0&a$EOMES==0&a$SYP>0,]
+ASTRO<-a[a$GFAP>0&a$SYP==0&a$NES==0&a$TBR1==0&a$EOMES==0,]
+
+RG$Type<-"RG"
+TBR2$Type<-"TBR2"
+TBR1$Type<-"TBR1"
+MN$Type<-"MN"
+ASTRO$Type<-"ASTRO"
+
+b<-rbind(RG, TBR2, TBR1, MN, ASTRO)
+b$Type<-factor(b$Type, levels=c("RG", "TBR2","TBR1", "MN", "ASTRO"))
+
+c<-glm(MAPT~Type+Age, data=b)
+summary(c)
+require(stats)
+h<-aggregate(b$MAPT~b$Type,FUN=mean)
+k<-aggregate(b$MAPT~b$Type,FUN=sd)
+
+j<-merge(h, k, by="b$Type")
+
+colnames(j)<-c("Type", "Mean", "SD")
+
+j$n<-c(dim(RG)[1],dim(TBR2)[1],dim(TBR1)[1],dim(MN)[1],dim(ASTRO)[1])
+
+j$STE<-j$SD/sqrt(j$n)
+
+Figure1a<-ggplot(b, aes(x=Type, y=MAPT))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(plot.title=element_text(hjust=-0.05, size=20))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_discrete(labels=c("Radial Glia","TBR2","TBR1","Mature Neurons","Astrocytes"))+
+  scale_y_continuous(limits=c(0,1000))+
+  annotate("text", x=c(1:5), y=0, label= (paste("n=",mergestats$n, sep="")), size=5)
+
+table<-read.csv("scRNA_MAPT.csv",header=TRUE)
+
+table<-table[table$Laminae!="All",]
+table<-table[table$Laminae!="ALL",]
+table<-table[table$Laminae!="GZ",]
+
+levels(table$Laminae)<-c(levels(table$Laminae),"GE")
+table[table$Laminae=="0",]$Laminae<-"GE"
+
+table$Laminae<-factor(table$Laminae,levels=c("GE","VZ","SVZ","CP"))
+summary(glm(MAPT~Laminae+Age, data=table))
+
+q<-aggregate(table$MAPT~table$Laminae,FUN=mean)
+r<-aggregate(table$MAPT~table$Laminae,FUN=sd)
+
+m<-merge(q, r, by="table$Laminae")
+
+colnames(m)<-c("Laminae","Mean","SD")
+
+m$p<-c(dim(table[table$Laminae=="GE",])[1],dim(table[table$Laminae=="VZ",])[1],dim(table[table$Laminae=="SVZ",])[1],dim(table[table$Laminae=="CP",])[1])
+
+m$STE<-m$SD/sqrt(m$p)
+
+Figure1b<-ggplot(table, aes(x=Laminae, y=MAPT))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(plot.title=element_text(hjust=-0.05, size=20))+
+  scale_x_discrete(labels=c("GE","VZ","SVZ","CP"))+
+  scale_y_continuous(limits=c(0,1000))+
+  annotate("text", x=c(1:4), y=0, label= (paste("n=",m$p, sep="")))
+
+grid.arrange(Figure1b,Figure1a,ncol=2)
