@@ -22,27 +22,28 @@ sample3<-read.csv(file="Pasca_RNASeq_Sample3.csv", header=TRUE)
 
 organoids<-rbind(sample1, sample2, sample3)
 
-RG<-organoids[organoids$GFAP>0&organoids$SYP==0&organoids$NES>0&organoids$TBR1==0&organoids$EOMES==0,] #isolate RG markers
-TBR2<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES>0&organoids$SYP==0,] #isolate TBR2 markers
+RG<-organoids[organoids$GFAP>0&organoids$SYP==0&organoids$NES>0&organoids$TBR1==0&organoids$EOMES==0,]
+TBR2<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES>0&organoids$SYP==0,]
 TBR1<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1>0&organoids$EOMES==0&organoids$SYP==0,]
 MN<-organoids[organoids$GFAP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES==0&organoids$SYP>0,]
 ASTRO<-organoids[organoids$GFAP>0&organoids$SYP==0&organoids$NES==0&organoids$TBR1==0&organoids$EOMES==0,]
 
-RG$Type<-"RG" #label these values RG
+RG$Type<-"RG" 
 TBR2$Type<-"TBR2"
 TBR1$Type<-"TBR1"
 MN$Type<-"MN"
 ASTRO$Type<-"ASTRO"
 
-organoids2<-rbind(RG, TBR2, TBR1, MN, ASTRO) #bind all these variables into a dataset
+organoids2<-rbind(RG, TBR2, TBR1, MN, ASTRO)
 organoids2$Type<-factor(organoids2$Type, levels=c("RG", "TBR2","TBR1", "MN", "ASTRO"))
 
-datastats<-glm(MAPT~Type, data=organoids2) #run a glm
+datastats<-glm(MAPT~Type, data=organoids2)
 summary(datastats)
+confint(datastats)
 
 require(stats)
 
-meanstats<-aggregate(organoids2$MAPT~organoids2$Type,FUN=mean) #calculate the mean of each of the variables in Type
+meanstats<-aggregate(organoids2$MAPT~organoids2$Type,FUN=mean)
 sdstats<-aggregate(organoids2$MAPT~organoids2$Type,FUN=sd)
 
 mergestats<-merge(meanstats, sdstats, by="organoids2$Type")
