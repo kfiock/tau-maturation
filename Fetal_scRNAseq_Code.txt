@@ -20,6 +20,8 @@ b$Type<-factor(b$Type, levels=c("RG", "TBR2","TBR1", "MN", "ASTRO"))
 
 c<-glm(MAPT~Type+Age, data=b)
 summary(c)
+confint(c)
+
 require(stats)
 h<-aggregate(b$MAPT~b$Type,FUN=mean)
 k<-aggregate(b$MAPT~b$Type,FUN=sd)
@@ -51,7 +53,8 @@ levels(table$Laminae)<-c(levels(table$Laminae),"GE")
 table[table$Laminae=="0",]$Laminae<-"GE"
 
 table$Laminae<-factor(table$Laminae,levels=c("GE","VZ","SVZ","CP"))
-summary(glm(MAPT~Laminae+Age, data=table))
+model<-glm(MAPT~Laminae+Age, data=table)
+confint(model)
 
 q<-aggregate(table$MAPT~table$Laminae,FUN=mean)
 r<-aggregate(table$MAPT~table$Laminae,FUN=sd)
